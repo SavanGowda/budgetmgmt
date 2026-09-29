@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Budget">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef2f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1419" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+html{-webkit-text-size-adjust:100%}
+:root{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;overscroll-behavior-y:none}
+[hidden]{display:none!important}
+img{max-width:100%}
+
+/* Layout: single-column phone app — month header, income, three bucket envelopes, credit plan, ledger, fixed add bar */
+:root{
+  --bg:#eef2f5; --surface:#ffffff; --sunk:#e3e9ee; --ink:#15202b; --muted:#5b6a79; --line:#d6dee6;
+  --life:#3552c8; --save:#0c8468; --fun:#cc3d63; --credit:#a86a12; --warn:#c2410c;
+  --display:"Bricolage Grotesque", "Avenir Next", system-ui, sans-serif;
+  --body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1419; --surface:#172029; --sunk:#0b1015; --ink:#e7edf2; --muted:#94a3b1; --line:#283441;
+  --life:#8199ff; --save:#3ccaa0; --fun:#ff7c9c; --credit:#e6ac4f; --warn:#fb8a4c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1419; --surface:#172029; --sunk:#0b1015; --ink:#e7edf2; --muted:#94a3b1; --line:#283441;
+  --life:#8199ff; --save:#3ccaa0; --fun:#ff7c9c; --credit:#e6ac4f; --warn:#fb8a4c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:8px 120px;display:flex;flex-direction:column;gap:18px}
+.num{font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--life);outline-offset:2px}
+.label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:flex;align-items:center;gap:8px}
+.brand{font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:-.01em;flex:1;min-width:0}
+.brand span{color:var(--life)}.brand span+span{color:var(--save)}.brand span+span+span{color:var(--fun)}
+.month{display:flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:3px}
+.month b{font-weight:600;font-size:14px;min-width:118px;text-align:center}
+.icon{width:34px;height:34px;border-radius:999px;border:0;background:transparent;display:grid;place-items:center;font-size:18px}
+.icon:hover{background:var(--sunk)}
+.gear{border:1px solid var(--line);background:var(--surface)}
+
+/* income hero */
+.hero{display:flex;flex-direction:column;gap:12px}
+.hero-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.big{font-family:var(--display);font-weight:800;font-size:clamp(34px,10vw,46px);line-height:1;letter-spacing:-.03em}
+.splitbar{display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--sunk);gap:2px}
+.splitbar i{display:block;height:100%}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+
+.banner{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:12px 14px;display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14px}
+
+/* buckets */
+.buckets{display:grid;gap:10px}
+.bucket{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:8px;text-align:left;width:100%}
+.bucket.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
+.b-head{display:flex;align-items:center;gap:8px}
+.b-name{font-weight:700;flex:1}
+.pct{font-size:12px;font-weight:700;color:var(--c);background:color-mix(in srgb,var(--c) 13%,transparent);padding:2px 8px;border-radius:999px}
+.b-left{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.b-left strong{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:-.02em}
+.b-left.over strong{color:var(--warn)}
+.meter{height:8px;border-radius:999px;background:var(--sunk);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}
+.meter .res{background:repeating-linear-gradient(135deg,var(--credit) 0 3px,transparent 3px 6px);opacity:.8}
+.b-foot{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+/* credit */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:12px}
+.credit{border-color:color-mix(in srgb,var(--credit) 45%,var(--line))}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat strong{font-family:var(--display);font-size:20px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.debt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding-block:10px;border-top:1px solid var(--line);text-align:left;background:none;border-inline:0;border-bottom:0;width:100%}
+.debt small{color:var(--muted);font-size:12.5px}
+.debt .dm{grid-column:1/-1;height:5px;border-radius:9px;background:var(--sunk);overflow:hidden;margin-top:4px}
+.debt .dm i{display:block;height:100%;background:var(--credit)}
+.tag{font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--credit) 16%,transparent);color:var(--credit)}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 16px;font-weight:600;font-size:14px}
+.btn:hover{background:var(--sunk)}
+.btn.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn.primary:hover{opacity:.9}
+.btn.credit-b{background:var(--credit);border-color:var(--credit);color:#fff}
+.btn.danger{color:var(--warn)}
+.btn.small{padding:6px 12px;font-size:13px}
+.link{background:none;border:0;padding:0;color:var(--life);font-weight:600;font-size:14px}
+
+/* ledger */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.ledger{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.item{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:12px 14px 12px 0;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;width:100%}
+.item:last-child{border-bottom:0}
+.item:hover{background:color-mix(in srgb,var(--sunk) 55%,transparent)}
+.item .stripe{grid-row:1/3;align-self:stretch;border-radius:0 3px 3px 0}
+.item .t{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .s{font-size:12.5px;color:var(--muted);grid-column:2}
+.item .a{grid-row:1/3;grid-column:3;font-weight:700;text-align:right}
+.item .a.in{color:var(--save)}
+.empty{padding:26px 18px;text-align:center;color:var(--muted);font-size:14px}
+
+/* add bar */
+.addbar{position:fixed;left:0;right:0;bottom:0;z-index:6;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-top:1px solid var(--line)}
+.addbar div{max-width:560px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr;gap:10px}
+.addbar .btn{padding:13px 16px;font-size:15px}
+
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(8,12,16,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:560px;max-height:90%;overflow-y:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sheet-h h2{font-size:21px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field>span{font-size:13px;font-weight:600;color:var(--muted)}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;min-width:0}
+input.amt{font-family:var(--display);font-size:28px;font-weight:700;padding:10px 12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:6px}
+.seg button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 6px;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:2px}
+.seg button small{font-weight:500;color:var(--muted);font-size:11.5px}
+.seg button.on{border-color:var(--c,var(--ink));background:color-mix(in srgb,var(--c,var(--ink)) 12%,var(--surface));box-shadow:0 0 0 1px var(--c,var(--ink))}
+.catlist{display:flex;flex-wrap:wrap;gap:6px}
+.catlist button{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 11px;font-size:13px}
+.catlist button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.check{display:flex;align-items:center;gap:10px;font-size:14px}
+.check input{width:20px;height:20px;accent-color:var(--life)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn{flex:1}
+.hint{font-size:12.5px;color:var(--muted);margin:0}
+.err{color:var(--warn);font-size:13px;min-height:1em;margin:0}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13.5px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+.loading{padding:60px 0;text-align:center;color:var(--muted)}
+</style>
+
+</head>
+<body>
+<header class="wrap" style="padding-block:0;gap:0">
+  <div class="top">
+    <div class="brand"><span>70</span>·<span>20</span>·<span>10</span></div>
+    <div class="month">
+      <button class="icon" id="prev" aria-label="Previous month">‹</button>
+      <b id="mlabel" class="num">…</b>
+      <button class="icon" id="next" aria-label="Next month">›</button>
+    </div>
+    <button class="icon gear" id="settingsBtn" aria-label="Settings">⚙</button>
+  </div>
+</header>
+<main class="wrap" id="app"><div class="loading">Opening your budget…</div></main>
+<nav class="addbar"><div>
+  <button class="btn primary" id="addExp">+ Add expense</button>
+  <button class="btn" id="addInc">+ Income</button>
+</div></nav>
+<div id="sheetRoot"></div>
+
+<script>
+(function(){
+const BK = {
+  life:{name:'Life costs', hint:'Rent, groceries, bills', c:'var(--life)'},
+  save:{name:'Savings', hint:'Emergency fund, goals', c:'var(--save)'},
+  fun:{name:'Self care & fun', hint:'Treats, hobbies, going out', c:'var(--fun)'}
+};
+const CATS = [['Rent','life'],['Groceries','life'],['Utilities','life'],['Transport','life'],['Phone & internet','life'],['Insurance','life'],['Health','life'],['Household','life'],
+  ['Emergency fund','save'],['Savings goal','save'],['Investing','save'],
+  ['Eating out','fun'],['Hobbies','fun'],['Wellness','fun'],['Clothes','fun'],['Travel','fun'],['Gifts','fun'],['Other','life']];
+const CURS = ['EUR','USD','GBP','CHF','INR','PLN','SEK'];
+const DEFAULT_SETTINGS = {currency:'EUR', split:{life:70,save:20,fun:10}, credit:{monthly:0, source:'save'}, credits:[], recurring:[], example:false};
+
+let S = {settings:clone(DEFAULT_SETTINGS), months:{}, cur:thisMonth(), filter:'all'};
+const $ = s=>document.querySelector(s);
+const app = $('#app');
+
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function uid(){return Math.random().toString(36).slice(2,9)+Date.now().toString(36).slice(-4)}
+function thisMonth(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')}
+function addM(k,n){let [y,m]=k.split('-').map(Number);m+=n;y+=Math.floor((m-1)/12);m=((m-1)%12+12)%12+1;return y+'-'+String(m).padStart(2,'0')}
+function mLabel(k,short){const [y,m]=k.split('-').map(Number);return new Date(y,m-1,1).toLocaleDateString(undefined,{month:short?'short':'long',year:'numeric'})}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function defDate(){return S.cur===thisMonth()?today():S.cur+'-01'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])}
+function money(n,dec){try{return new Intl.NumberFormat(undefined,{style:'currency',currency:S.settings.currency,maximumFractionDigits:dec===false?0:2,minimumFractionDigits:dec===false?0:(Math.round(n)===n?0:2)}).format(n)}catch(e){return n.toFixed(2)}}
+function parseAmt(v){v=String(v||'').trim().replace(/\s/g,'');if(/,\d{1,2}$/.test(v))v=v.replace(/\./g,'').replace(',','.');else v=v.replace(/,/g,'');const n=parseFloat(v);return isFinite(n)?Math.round(n*100)/100:NaN}
+function r2(n){return Math.round(n*100)/100}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+
+/* ---------- storage: private per-person db when available, browser storage otherwise ---------- */
+const KEY='budget-702010';
+const Store = {
+  local:{},
+  async init(){
+    try{ this.local = JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ this.local={}; }
+    try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+    return clone(this.local);
+  },
+  flush(){ try{ localStorage.setItem(KEY, JSON.stringify(this.local)); }catch(e){ toast('Couldn\u2019t save. Your phone storage may be full.'); } },
+  save(id,data){ this.local[id]=clone(data); this.flush(); },
+  remove(id){ delete this.local[id]; this.flush(); },
+  replaceAll(docs){ this.local=clone(docs); this.flush(); }
+};
+function saveSettings(){Store.save('settings',S.settings)}
+function month(k){return S.months[k]||(S.months[k]={items:[],skipped:[]})}
+function saveMonth(k){Store.save('m-'+k,month(k))}
+
+/* ---------- money logic ---------- */
+function itemsFor(k){
+  const m = S.months[k]||{items:[],skipped:[]};
+  const rec = S.settings.recurring.filter(r=>r.start<=k && (!r.end || k<=r.end) && !(m.skipped||[]).includes(r.id))
+    .map(r=>({...r, id:'r:'+r.id, rid:r.id, recurring:true, date:k+'-'+String(r.day||1).padStart(2,'0')}));
+  return m.items.concat(rec).sort((a,b)=>b.date.localeCompare(a.date));
+}
+function paidTo(cid, onlyMonth){
+  let t=0; for(const k in S.months){ if(onlyMonth && k!==onlyMonth) continue; for(const it of S.months[k].items) if(it.type==='payment' && (!cid || it.creditId===cid)) t+=it.amount; }
+  return t;
+}
+function remaining(c){return Math.max(0, r2(c.balance - paidTo(c.id)))}
+function totalDebt(){return r2(S.settings.credits.reduce((s,c)=>s+remaining(c),0))}
+/* avalanche: minimums first, then the rest to the highest interest rate */
+function allocate(amount, balances){
+  const list = S.settings.credits.map(c=>({id:c.id, name:c.name, rate:+c.rate||0, min:+c.min||0, bal:balances?balances[c.id]:remaining(c), pay:0})).filter(c=>c.bal>0.004);
+  let left = amount;
+  for(const c of list){ const p=Math.min(c.min,c.bal,left); c.pay+=p; left-=p; }
+  list.sort((a,b)=>b.rate-a.rate);
+  for(const c of list){ if(left<=0) break; const p=Math.min(c.bal-c.pay,left); c.pay+=p; left-=p; }
+  return list.filter(c=>c.pay>0.004).map(c=>({id:c.id,name:c.name,amount:r2(c.pay)}));
+}
+function payoff(){
+  const plan=+S.settings.credit.monthly||0; const bal={}; let tot=0;
+  S.settings.credits.forEach(c=>{bal[c.id]=remaining(c); tot+=bal[c.id];});
+  if(tot<=0) return {months:0};
+  if(plan<=0) return null;
+  let months=0, interest=0;
+  while(months<600){
+    let sum=0;
+    S.settings.credits.forEach(c=>{ if(bal[c.id]>0){ const i=bal[c.id]*(+c.rate||0)/1200; bal[c.id]+=i; interest+=i; } sum+=bal[c.id]; });
+    if(sum<=0.01) break;
+    for(const a of allocate(plan,bal)) bal[a.id]=Math.max(0,bal[a.id]-a.amount);
+    months++;
+    if(Object.values(bal).every(v=>v<=0.01)) break;
+  }
+  return months>=600?{never:true}:{months,interest};
+}
+function calc(k){
+  const items=itemsFor(k), st=S.settings, sp=st.split, src=st.credit.source;
+  const income=r2(items.filter(i=>i.type==='income').reduce((s,i)=>s+i.amount,0));
+  const paidM=r2(items.filter(i=>i.type==='payment').reduce((s,i)=>s+i.amount,0));
+  const debtBefore=r2(totalDebt()+paidTo(null,k));
+  const planned=debtBefore>0?Math.min(+st.credit.monthly||0, debtBefore):0;
+  const plannedLeft=Math.max(0,r2(planned-paidM));
+  const base = src==='top'? Math.max(0,income-planned) : income;
+  const b={};
+  for(const key of ['life','save','fun']){
+    const spent=r2(items.filter(i=>(i.type==='expense'||i.type==='payment')&&i.bucket===key).reduce((s,i)=>s+i.amount,0));
+    const alloc=r2(base*(+sp[key]||0)/100);
+    const reserved=src===key?plannedLeft:0;
+    b[key]={alloc,spent,reserved,left:r2(alloc-spent-reserved)};
+  }
+  return {items,income,paidM,planned,plannedLeft,base,b};
+}
+
+/* ---------- render ---------- */
+function render(){
+  $('#mlabel').textContent=mLabel(S.cur);
+  const st=S.settings, c=calc(S.cur), sp=st.split;
+  const debts=st.credits, tDebt=totalDebt(), po=payoff();
+  let h='';
+
+  if(st.example) h+=`<div class="banner"><span><b>Example numbers.</b> Clear them when you're ready to enter your own.</span><button class="btn small" data-act="clearEx">Clear example</button></div>`;
+  if(needsBackup()) h+=`<div class="banner"><span>Your budget lives only on this phone. Save a backup now and then.</span><button class="btn small" data-act="backup">Back up</button></div>`;
+
+  h+=`<section class="hero"><div class="hero-row"><div><div class="label">Earned in ${esc(mLabel(S.cur,true))}</div>
+    <div class="big num">${money(c.income)}</div></div>
+    <button class="link" data-act="income">+ Add income</button></div>`;
+  if(c.income>0){
+    h+=`<div class="splitbar" aria-hidden="true">${['life','save','fun'].map(k=>`<i style="flex:${sp[k]||0.0001};background:${BK[k].c}"></i>`).join('')}</div>
+    <div class="legend">${['life','save','fun'].map(k=>`<span><i class="dot" style="background:${BK[k].c}"></i>${sp[k]}% · ${money(c.b[k].alloc,false)}</span>`).join('')}</div>`;
+    if(st.credit.source==='top' && c.planned>0) h+=`<p class="hint">${money(c.planned)} goes to credit repayment first; the split applies to the remaining ${money(c.base)}.</p>`;
+  }
+  h+=`</section>`;
+
+  if(c.income<=0 && !itemsFor(S.cur).length){
+    h+=`<div class="card"><h3>Start with what you earned</h3><p class="muted" style="margin:0">Add your salary for ${esc(mLabel(S.cur))}. It's split automatically: ${sp.life}% life costs, ${sp.save}% savings, ${sp.fun}% self care. Then log each expense against the bucket it comes out of.</p>
+    <div class="actions"><button class="btn primary" data-act="income">Add income</button>${Object.keys(S.months).length||st.credits.length?'':'<button class="btn" data-act="example">Try example numbers</button>'}</div></div>`;
+  }
+
+  h+=`<section class="buckets">`;
+  for(const k of ['life','save','fun']){
+    const x=c.b[k], used=x.alloc>0?Math.min(100,x.spent/x.alloc*100):(x.spent>0?100:0), res=x.alloc>0?Math.min(100-used,x.reserved/x.alloc*100):0, over=x.left<0;
+    h+=`<button class="bucket ${S.filter===k?'on':''}" style="--c:${BK[k].c}" data-act="filter" data-k="${k}" aria-pressed="${S.filter===k}">
+      <div class="b-head"><span class="b-name">${BK[k].name}</span><span class="pct">${sp[k]}%</span></div>
+      <div class="b-left ${over?'over':''}"><strong class="num">${over?money(-x.left)+' over':money(x.left)+' left'}</strong></div>
+      <div class="meter"><i style="width:${used}%;background:${BK[k].c}"></i>${res>0?`<i class="res" style="width:${res}%"></i>`:''}</div>
+      <div class="b-foot num"><span>${money(x.spent)} spent of ${money(x.alloc)}</span>${x.reserved>0?`<span style="color:var(--credit)">${money(x.reserved)} held for credit</span>`:''}</div>
+    </button>`;
+  }
+  h+=`</section>`;
+
+  // credit
+  h+=`<section class="card credit"><div class="row"><h2 style="font-size:19px">Credit repayment</h2><button class="link" data-act="credit">+ Add credit</button></div>`;
+  if(!debts.length){
+    h+=`<p class="muted" style="margin:0">Add a credit card, loan or overdraft. Set a monthly repayment and the app holds that money aside from the bucket you choose, highest interest first.</p>`;
+  }else{
+    const poTxt = !po?'Set a monthly amount': po.never?'Payment too low':po.months===0?'Paid off':mLabel(addM(thisMonth(),po.months),true);
+    h+=`<div class="stats num">
+      <div class="stat"><span class="label">Still owed</span><strong>${money(tDebt,false)}</strong></div>
+      <div class="stat"><span class="label">Per month</span><strong>${money(+st.credit.monthly||0,false)}</strong></div>
+      <div class="stat"><span class="label">Debt-free</span><strong>${poTxt}</strong></div></div>`;
+    if(po && po.never) h+=`<p class="err">Your monthly repayment is less than the interest being added. Raise it in settings.</p>`;
+    else if(po && po.months>0) h+=`<p class="hint">About ${po.months} month${po.months>1?'s':''} at ${money(+st.credit.monthly||0)}/month, with roughly ${money(po.interest,false)} in interest. Paying more shortens both.</p>`;
+    if(c.planned>0){
+      h+= c.plannedLeft>0
+        ? `<div class="row"><span>${money(c.paidM)} of ${money(c.planned)} paid this month</span><button class="btn small credit-b" data-act="payPlan">Mark ${money(c.plannedLeft)} as paid</button></div>`
+        : `<div class="row"><span>This month's ${money(c.planned)} is paid ✓</span><button class="link" data-act="payment">Extra payment</button></div>`;
+    }else if(tDebt>0){
+      h+=`<div class="row"><span class="muted">No monthly repayment set yet.</span><button class="btn small" data-act="settings">Set amount</button></div>`;
+    }
+    h+=`<div>`;
+    const order=[...debts].sort((a,b)=>(remaining(b)>0)-(remaining(a)>0)||(+b.rate||0)-(+a.rate||0));
+    order.forEach((d,i)=>{
+      const rem=remaining(d), pct=d.balance>0?Math.min(100,(d.balance-rem)/d.balance*100):100;
+      h+=`<button class="debt" data-act="editCredit" data-id="${d.id}">
+        <span><b>${esc(d.name)}</b> ${rem<=0?'<span class="tag">Paid off</span>':i===0&&debts.length>1?'<span class="tag">Pay first</span>':''}</span>
+        <b class="num">${money(rem)}</b>
+        <small>${+d.rate||0}% interest · min ${money(+d.min||0)}</small><small class="num" style="text-align:right">${money(d.balance-rem)} repaid</small>
+        <span class="dm"><i style="width:${pct}%"></i></span></button>`;
+    });
+    h+=`</div>`;
+  }
+  h+=`</section>`;
+
+  // ledger
+  const F=S.filter;
+  let list=c.items.filter(i=>F==='all'||(F==='income'?i.type==='income':F==='credit'?i.type==='payment':(i.type!=='income'&&i.bucket===F)));
+  h+=`<section style="display:flex;flex-direction:column;gap:10px"><div class="row"><h2 style="font-size:19px">${esc(mLabel(S.cur))}</h2><span class="muted num" style="font-size:13px">${c.items.length} entries</span></div>
+    <div class="chips">${[['all','All'],['life','Life costs'],['save','Savings'],['fun','Self care'],['credit','Credit'],['income','Income']].map(([k,l])=>`<button class="chip ${F===k?'on':''}" data-act="filter" data-k="${k}">${l}</button>`).join('')}</div>
+    <div class="ledger">`;
+  if(!list.length) h+=`<div class="empty">${F==='all'?'Nothing logged this month yet. Tap “Add expense” when you spend.':'Nothing here this month.'}</div>`;
+  for(const it of list){
+    const col = it.type==='income'?'var(--save)':it.type==='payment'?'var(--credit)':BK[it.bucket]?.c||'var(--muted)';
+    const from = it.type==='income'?'Income':it.type==='payment'?('Credit · from '+(it.bucket==='top'?'income':BK[it.bucket]?.name)):(esc(it.category||'')+' · '+BK[it.bucket]?.name);
+    const d=new Date(it.date+'T12:00'); const ds=d.toLocaleDateString(undefined,{day:'numeric',month:'short'});
+    h+=`<button class="item" data-act="edit" data-id="${esc(it.id)}"><i class="stripe" style="background:${col}"></i>
+      <span class="t">${esc(it.desc||it.category||'Entry')}</span><span class="a num ${it.type==='income'?'in':''}">${it.type==='income'?'+':'−'}${money(it.amount)}</span>
+      <span class="s">${ds} · ${from}${it.recurring?' · repeats monthly':''}</span></button>`;
+  }
+  h+=`</div></section>`;
+  app.innerHTML=h;
+}
+
+/* ---------- sheets ---------- */
+const root=$('#sheetRoot');
+function openSheet(html,onMount){
+  root.innerHTML=`<div class="scrim" data-close="1"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  const sc=root.firstChild; sc.addEventListener('click',e=>{if(e.target.dataset.close)closeSheet()});
+  sc.querySelectorAll('[data-x]').forEach(b=>b.addEventListener('click',closeSheet));
+  onMount&&onMount(sc.querySelector('.sheet'));
+  const f=sc.querySelector('input.amt,input'); if(f) setTimeout(()=>f.focus({preventScroll:true}),60);
+}
+function closeSheet(){root.innerHTML=''}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&root.firstChild)closeSheet()});
+const head=t=>`<div class="sheet-h"><h2>${t}</h2><button class="icon" data-x aria-label="Close">✕</button></div>`;
+
+function findItem(id){
+  if(id.startsWith('r:')) return {rec:S.settings.recurring.find(r=>r.id===id.slice(2))};
+  return {item:month(S.cur).items.find(i=>i.id===id)};
+}
+
+function expenseSheet(existing, isRec){
+  const e=existing||{type:'expense',amount:'',desc:'',category:'Groceries',bucket:'life',date:defDate()};
+  let bucket=e.bucket, cat=e.category, touched=!!existing;
+  openSheet(`${head(existing?'Edit expense':'Add expense')}
+    <label class="field"><span>Amount</span><input class="amt num" id="f_amt" inputmode="decimal" placeholder="0" value="${e.amount===''?'':e.amount}"></label>
+    <div class="field"><span>Category</span><div class="catlist" id="f_cats">${CATS.map(([n])=>`<button type="button" data-c="${esc(n)}" class="${n===cat?'on':''}">${esc(n)}</button>`).join('')}</div></div>
+    <label class="field"><span>Note (optional)</span><input id="f_desc" placeholder="e.g. Weekly shop at Rewe" value="${esc(e.desc)}"></label>
+    <div class="field"><span>Take it from</span><div class="seg" id="f_b">${['life','save','fun'].map(k=>`<button type="button" data-b="${k}" style="--c:${BK[k].c}" class="${k===bucket?'on':''}">${BK[k].name}<small class="num">${money(calc(S.cur).b[k].left,false)} left</small></button>`).join('')}</div></div>
+    <div class="grid2"><label class="field"><span>Date</span><input type="date" id="f_date" value="${esc(isRec?S.cur+'-'+String(e.day||1).padStart(2,'0'):e.date)}"></label>
+    <label class="check" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="f_rep" ${isRec?'checked disabled':''}> Repeats monthly</label></div>
+    ${isRec?`<p class="hint">Repeats every month since ${esc(mLabel(e.start))}. Changes apply to every month it appears in.</p>`:''}
+    <p class="err" id="f_err"></p>
+    <div class="actions"><button class="btn primary" id="f_save">${existing?'Save changes':'Add expense'}</button></div>
+    ${existing?(isRec?`<div class="actions"><button class="btn small" id="f_skip">Skip this month</button><button class="btn small danger" id="f_stop">Stop from this month</button></div>`:`<div class="actions"><button class="btn small danger" id="f_del">Delete expense</button></div>`):''}`,
+  s=>{
+    s.querySelector('#f_cats').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;cat=b.dataset.c;s.querySelectorAll('#f_cats button').forEach(x=>x.classList.toggle('on',x===b));
+      if(!touched){bucket=(CATS.find(c=>c[0]===cat)||[])[1]||bucket;s.querySelectorAll('#f_b button').forEach(x=>x.classList.toggle('on',x.dataset.b===bucket));}});
+    s.querySelector('#f_b').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;bucket=b.dataset.b;touched=true;s.querySelectorAll('#f_b button').forEach(x=>x.classList.toggle('on',x===b));});
+    s.querySelector('#f_save').addEventListener('click',()=>{
+      const amt=parseAmt(s.querySelector('#f_amt').value), desc=s.querySelector('#f_desc').value.trim(), date=s.querySelector('#f_date').value||defDate(), rep=s.querySelector('#f_rep').checked;
+      if(!(amt>0)){s.querySelector('#f_err').textContent='Enter an amount above zero.';return;}
+      const data={type:'expense',amount:amt,desc,category:cat,bucket};
+      if(isRec){Object.assign(existing,data,{day:+date.slice(8,10)||1});saveSettings();}
+      else if(rep && !existing){S.settings.recurring.push({id:uid(),...data,day:+date.slice(8,10)||1,start:date.slice(0,7),end:null});saveSettings();}
+      else if(rep && existing){const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);S.settings.recurring.push({id:uid(),...data,day:+date.slice(8,10)||1,start:date.slice(0,7),end:null});saveMonth(S.cur);saveSettings();}
+      else{const k=date.slice(0,7);if(existing){Object.assign(existing,data,{date});if(k!==S.cur){const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);month(k).items.push(existing);saveMonth(S.cur);}}else month(k).items.push({id:uid(),...data,date});saveMonth(k);}
+      closeSheet();render();toast(existing?'Saved':`Taken from ${BK[bucket].name}`);
+    });
+    recButtons(s,existing,isRec);
+  });
+}
+function recButtons(s,existing,isRec){
+  const del=s.querySelector('#f_del'); if(del) del.addEventListener('click',()=>{const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);saveMonth(S.cur);closeSheet();render();toast('Deleted');});
+  const skip=s.querySelector('#f_skip'); if(skip) skip.addEventListener('click',()=>{const m=month(S.cur);(m.skipped=m.skipped||[]).push(existing.id);saveMonth(S.cur);closeSheet();render();toast('Skipped for '+mLabel(S.cur,true));});
+  const stop=s.querySelector('#f_stop'); if(stop) stop.addEventListener('click',()=>{const end=addM(S.cur,-1);if(end<existing.start)S.settings.recurring=S.settings.recurring.filter(r=>r!==existing);else existing.end=end;saveSettings();closeSheet();render();toast('Stopped repeating');});
+}
+
+function incomeSheet(existing,isRec){
+  const e=existing||{amount:'',desc:'Salary',date:defDate()};
+  openSheet(`${head(existing?'Edit income':'Add income')}
+    <label class="field"><span>Amount received</span><input class="amt num" id="f_amt" inputmode="decimal" placeholder="0" value="${e.amount}"></label>
+    <label class="field"><span>From</span><input id="f_desc" value="${esc(e.desc)}" placeholder="Salary, freelance, refund…"></label>
+    <div class="grid2"><label class="field"><span>Date</span><input type="date" id="f_date" value="${esc(isRec?S.cur+'-'+String(e.day||1).padStart(2,'0'):e.date)}"></label>
+    <label class="check" style="align-self:end;padding-bottom:10px"><input type="checkbox" id="f_rep" ${isRec?'checked disabled':(existing?'':'checked')}> Every month</label></div>
+    <p class="hint">Split into ${S.settings.split.life}% life costs, ${S.settings.split.save}% savings and ${S.settings.split.fun}% self care.</p>
+    <p class="err" id="f_err"></p>
+    <div class="actions"><button class="btn primary" id="f_save">${existing?'Save changes':'Add income'}</button></div>
+    ${existing?(isRec?`<div class="actions"><button class="btn small" id="f_skip">Skip this month</button><button class="btn small danger" id="f_stop">Stop from this month</button></div>`:`<div class="actions"><button class="btn small danger" id="f_del">Delete income</button></div>`):''}`,
+  s=>{
+    s.querySelector('#f_save').addEventListener('click',()=>{
+      const amt=parseAmt(s.querySelector('#f_amt').value), desc=s.querySelector('#f_desc').value.trim()||'Income', date=s.querySelector('#f_date').value||defDate(), rep=s.querySelector('#f_rep').checked;
+      if(!(amt>0)){s.querySelector('#f_err').textContent='Enter an amount above zero.';return;}
+      const data={type:'income',amount:amt,desc};
+      if(isRec){Object.assign(existing,data,{day:+date.slice(8,10)||1});saveSettings();}
+      else if(rep){if(existing){const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);saveMonth(S.cur);}S.settings.recurring.push({id:uid(),...data,day:+date.slice(8,10)||1,start:date.slice(0,7),end:null});saveSettings();}
+      else{const k=date.slice(0,7);if(existing){Object.assign(existing,data,{date});if(k!==S.cur){const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);month(k).items.push(existing);saveMonth(S.cur);}}else month(k).items.push({id:uid(),...data,date});saveMonth(k);}
+      closeSheet();render();toast('Income saved');
+    });
+    recButtons(s,existing,isRec);
+  });
+}
+
+function creditSheet(existing){
+  const e=existing||{name:'',balance:'',rate:'',min:''};
+  const paid=existing?paidTo(existing.id):0;
+  openSheet(`${head(existing?'Edit credit':'Add credit')}
+    <label class="field"><span>Name</span><input id="c_name" value="${esc(e.name)}" placeholder="e.g. Visa card, car loan"></label>
+    <label class="field"><span>${existing?'Balance when added':'Amount you owe now'}</span><input class="amt num" id="c_bal" inputmode="decimal" placeholder="0" value="${e.balance}"></label>
+    ${existing?`<p class="hint">${money(paid)} repaid through this app so far, so ${money(remaining(existing))} is left. If your statement shows a different figure, add the difference here.</p>`:''}
+    <div class="grid2"><label class="field"><span>Interest rate (% per year)</span><input id="c_rate" inputmode="decimal" placeholder="e.g. 18.9" value="${e.rate}"></label>
+    <label class="field"><span>Minimum monthly payment</span><input id="c_min" inputmode="decimal" placeholder="0" value="${e.min}"></label></div>
+    <p class="err" id="c_err"></p>
+    <div class="actions"><button class="btn primary" id="c_save">${existing?'Save changes':'Add credit'}</button></div>
+    ${existing?`<div class="actions"><button class="btn small" id="c_pay">Log a payment</button><button class="btn small danger" id="c_del">Remove credit</button></div>`:''}`,
+  s=>{
+    s.querySelector('#c_save').addEventListener('click',()=>{
+      const name=s.querySelector('#c_name').value.trim(), bal=parseAmt(s.querySelector('#c_bal').value), rate=parseAmt(s.querySelector('#c_rate').value)||0, min=parseAmt(s.querySelector('#c_min').value)||0;
+      if(!name){s.querySelector('#c_err').textContent='Give this credit a name.';return;}
+      if(!(bal>0)){s.querySelector('#c_err').textContent='Enter how much you owe.';return;}
+      if(existing) Object.assign(existing,{name,balance:bal,rate,min}); else S.settings.credits.push({id:uid(),name,balance:bal,rate,min});
+      if(!existing && !(+S.settings.credit.monthly>0)) S.settings.credit.monthly=r2(S.settings.credits.reduce((s2,c)=>s2+(+c.min||0),0));
+      saveSettings();closeSheet();render();toast(existing?'Saved':'Credit added');
+    });
+    if(existing){
+      s.querySelector('#c_pay').addEventListener('click',()=>paymentSheet(null,existing.id));
+      const del=s.querySelector('#c_del'); let armed=false;
+      del.addEventListener('click',()=>{if(!armed){armed=true;del.textContent='Tap again to remove';return;}
+        S.settings.credits=S.settings.credits.filter(c=>c!==existing);
+        for(const k in S.months){const m=S.months[k];const n=m.items.length;m.items=m.items.filter(i=>!(i.type==='payment'&&i.creditId===existing.id));if(m.items.length!==n)saveMonth(k);}
+        saveSettings();closeSheet();render();toast('Credit removed');});
+    }
+  });
+}
+
+function paymentSheet(existing,creditId){
+  const src=S.settings.credit.source;
+  const e=existing||{amount:'',creditId:creditId||(S.settings.credits.find(c=>remaining(c)>0)||S.settings.credits[0]||{}).id,bucket:src,date:defDate()};
+  let bucket=e.bucket;
+  const opts=['life','save','fun'].map(k=>[k,BK[k].name,BK[k].c]); if(src==='top'||bucket==='top') opts.push(['top','Off the top','var(--credit)']);
+  openSheet(`${head(existing?'Edit credit payment':'Log a credit payment')}
+    <label class="field"><span>Amount paid</span><input class="amt num" id="p_amt" inputmode="decimal" placeholder="0" value="${e.amount}"></label>
+    <label class="field"><span>Paid to</span><select id="p_c">${S.settings.credits.map(c=>`<option value="${c.id}" ${c.id===e.creditId?'selected':''}>${esc(c.name)} · ${money(remaining(c))} left</option>`).join('')}</select></label>
+    <div class="field"><span>Take it from</span><div class="seg" id="p_b">${opts.map(([k,n,col])=>`<button type="button" data-b="${k}" style="--c:${col}" class="${k===bucket?'on':''}">${n}</button>`).join('')}</div></div>
+    <label class="field"><span>Date</span><input type="date" id="p_date" value="${esc(e.date)}"></label>
+    <p class="err" id="p_err"></p>
+    <div class="actions"><button class="btn credit-b" id="p_save">${existing?'Save changes':'Log payment'}</button></div>
+    ${existing?`<div class="actions"><button class="btn small danger" id="p_del">Delete payment</button></div>`:''}`,
+  s=>{
+    s.querySelector('#p_b').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;bucket=b.dataset.b;s.querySelectorAll('#p_b button').forEach(x=>x.classList.toggle('on',x===b));});
+    s.querySelector('#p_save').addEventListener('click',()=>{
+      const amt=parseAmt(s.querySelector('#p_amt').value), cid=s.querySelector('#p_c').value, date=s.querySelector('#p_date').value||defDate();
+      if(!(amt>0)){s.querySelector('#p_err').textContent='Enter an amount above zero.';return;}
+      const cr=S.settings.credits.find(c=>c.id===cid);
+      const data={type:'payment',amount:amt,creditId:cid,bucket,desc:'Repayment · '+(cr?cr.name:'credit'),category:'Credit'};
+      const k=date.slice(0,7);
+      if(existing){Object.assign(existing,data,{date});if(k!==S.cur){const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);month(k).items.push(existing);saveMonth(S.cur);}}
+      else month(k).items.push({id:uid(),...data,date});
+      saveMonth(k);closeSheet();render();toast('Payment logged');
+    });
+    const del=s.querySelector('#p_del'); if(del) del.addEventListener('click',()=>{const m=month(S.cur);m.items=m.items.filter(i=>i!==existing);saveMonth(S.cur);closeSheet();render();toast('Deleted');});
+  });
+}
+
+function settingsSheet(){
+  const st=S.settings;
+  openSheet(`${head('Settings')}
+    <div class="field"><span>Your split of each month's income</span>
+      <div class="grid3">${['life','save','fun'].map(k=>`<label class="field"><span style="color:${BK[k].c}">${BK[k].name}</span><input id="s_${k}" inputmode="numeric" value="${st.split[k]}"></label>`).join('')}</div>
+      <p class="hint" id="s_sum"></p></div>
+    <label class="field"><span>Monthly credit repayment</span><input class="num" id="s_cm" inputmode="decimal" value="${st.credit.monthly||''}" placeholder="0"></label>
+    <p class="hint">Minimum payments are covered first; anything above goes to the highest-interest credit to clear it fastest.${st.credits.length?' Your minimums add up to '+money(st.credits.reduce((s,c)=>s+(+c.min||0),0))+'.':''}</p>
+    <div class="field"><span>Repayment comes out of</span><div class="seg" id="s_src">${[['save','Savings','var(--save)'],['life','Life costs','var(--life)'],['fun','Self care','var(--fun)'],['top','Off the top','var(--credit)']].map(([k,n,c])=>`<button type="button" data-b="${k}" style="--c:${c}" class="${st.credit.source===k?'on':''}">${n}</button>`).join('')}</div>
+      <p class="hint">“Off the top” takes the repayment from income before the ${st.split.life}/${st.split.save}/${st.split.fun} split.</p></div>
+    <label class="field"><span>Currency</span><select id="s_cur">${CURS.map(c=>`<option ${c===st.currency?'selected':''}>${c}</option>`).join('')}</select></label>
+    <p class="err" id="s_err"></p>
+    <div class="actions"><button class="btn primary" id="s_save">Save settings</button></div>
+    <div class="field" style="border-top:1px solid var(--line);padding-top:14px"><span>Backup</span>
+      <p class="hint">Everything is stored on this phone only. Save a backup file to iCloud Drive or Files so you can restore it if the app is removed.${st.lastBackup?' Last backup: '+new Date(st.lastBackup).toLocaleDateString()+'.':''}</p>
+      <div class="actions"><button class="btn small" id="s_exp">Save backup</button><label class="btn small" style="text-align:center">Restore backup<input type="file" id="s_imp" accept=".json,application/json" hidden></label></div>
+      <p class="hint" id="s_bmsg"></p></div>`,
+  s=>{
+    let src=st.credit.source;
+    const sum=()=>{const t=['life','save','fun'].reduce((a,k)=>a+(parseFloat(s.querySelector('#s_'+k).value)||0),0);s.querySelector('#s_sum').textContent=t===100?'Adds up to 100% ✓':`Adds up to ${t}%. It needs to be 100%.`;return t;};
+    sum(); ['life','save','fun'].forEach(k=>s.querySelector('#s_'+k).addEventListener('input',sum));
+    s.querySelector('#s_src').addEventListener('click',ev=>{const b=ev.target.closest('button');if(!b)return;src=b.dataset.b;s.querySelectorAll('#s_src button').forEach(x=>x.classList.toggle('on',x===b));});
+    s.querySelector('#s_save').addEventListener('click',()=>{
+      if(sum()!==100){s.querySelector('#s_err').textContent='Make the three parts add up to 100%.';return;}
+      ['life','save','fun'].forEach(k=>st.split[k]=parseFloat(s.querySelector('#s_'+k).value)||0);
+      st.credit.monthly=Math.max(0,parseAmt(s.querySelector('#s_cm').value)||0); st.credit.source=src; st.currency=s.querySelector('#s_cur').value;
+      saveSettings();closeSheet();render();toast('Settings saved');
+    });
+    s.querySelector('#s_exp').addEventListener('click',()=>exportBackup());
+    s.querySelector('#s_imp').addEventListener('change',ev=>{const f=ev.target.files[0];if(f)importBackup(f,s.querySelector('#s_bmsg'));});
+  });
+}
+function needsBackup(){const st=S.settings;const has=Object.keys(S.months).some(k=>S.months[k].items.length)||st.credits.length||st.recurring.length;if(!has||st.example)return false;return !st.lastBackup||Date.now()-st.lastBackup>30*864e5;}
+async function exportBackup(){
+  const data=JSON.stringify({app:'702010-budget',version:1,exported:new Date().toISOString(),docs:Store.local},null,1);
+  const name='budget-backup-'+today()+'.json';
+  const file=new File([data],name,{type:'application/json'});
+  let done=false;
+  try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:'Budget backup'}); done=true; } }
+  catch(e){ if(e&&e.name==='AbortError') return; }
+  if(!done){ const a=document.createElement('a'); a.href=URL.createObjectURL(file); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000); }
+  S.settings.lastBackup=Date.now(); saveSettings(); render(); toast('Backup saved');
+}
+function importBackup(f,msg){
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const j=JSON.parse(r.result); if(!j||j.app!=='702010-budget'||!j.docs) throw 0;
+      Store.replaceAll(j.docs);
+      S.settings=clone(DEFAULT_SETTINGS); S.months={}; applyDocs(j.docs);
+      closeSheet(); render(); toast('Backup restored');
+    }catch(e){ msg.textContent='That file isn\u2019t a budget backup. Pick a file named budget-backup-….json.'; msg.style.color='var(--warn)'; }
+  };
+  r.readAsText(f);
+}
+
+/* ---------- actions ---------- */
+function loadExample(){
+  const k=S.cur, st=S.settings;
+  st.example=true;
+  st.recurring.push({id:uid(),type:'income',amount:3200,desc:'Salary (example)',day:1,start:k,end:null},
+                    {id:uid(),type:'expense',amount:1050,desc:'Rent (example)',category:'Rent',bucket:'life',day:1,start:k,end:null});
+  const c1={id:uid(),name:'Credit card (example)',balance:2400,rate:19.9,min:60}, c2={id:uid(),name:'Car loan (example)',balance:6800,rate:6.5,min:180};
+  st.credits.push(c1,c2); st.credit.monthly=420; st.credit.source='save';
+  const m=month(k);
+  m.items.push({id:uid(),type:'expense',amount:86.4,desc:'Weekly shop (example)',category:'Groceries',bucket:'life',date:k+'-04'},
+    {id:uid(),type:'expense',amount:49,desc:'Monthly ticket (example)',category:'Transport',bucket:'life',date:k+'-02'},
+    {id:uid(),type:'expense',amount:38.5,desc:'Dinner with friends (example)',category:'Eating out',bucket:'fun',date:k+'-06'},
+    {id:uid(),type:'expense',amount:200,desc:'Emergency fund (example)',category:'Emergency fund',bucket:'save',date:k+'-02'});
+  saveSettings(); saveMonth(k); render();
+}
+function clearExample(){
+  const st=S.settings;
+  st.recurring=st.recurring.filter(r=>!/\(example\)$/.test(r.desc||''));
+  const exIds=st.credits.filter(c=>/\(example\)$/.test(c.name)).map(c=>c.id);
+  st.credits=st.credits.filter(c=>!exIds.includes(c.id));
+  if(!st.credits.length) st.credit.monthly=0;
+  st.example=false;
+  for(const k in S.months){const m=S.months[k],n=m.items.length;m.items=m.items.filter(i=>!/\(example\)$/.test(i.desc||'')&&!(i.type==='payment'&&exIds.includes(i.creditId)));if(m.items.length!==n)saveMonth(k);}
+  saveSettings(); render(); toast('Example cleared');
+}
+function payPlan(){
+  const c=calc(S.cur); const src=S.settings.credit.source; const k=S.cur; const date=defDate();
+  const parts=allocate(c.plannedLeft); if(!parts.length) return;
+  parts.forEach(p=>month(k).items.push({id:uid(),type:'payment',amount:p.amount,creditId:p.id,bucket:src,desc:'Repayment · '+p.name,category:'Credit',date}));
+  saveMonth(k); render(); toast(`${money(c.plannedLeft)} repaid`);
+}
+
+app.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-act]'); if(!b) return; const a=b.dataset.act;
+  if(a==='filter'){const k=b.dataset.k;S.filter=(S.filter===k&&k!=='all')?'all':k;render();}
+  else if(a==='income') incomeSheet();
+  else if(a==='credit') creditSheet();
+  else if(a==='editCredit') creditSheet(S.settings.credits.find(c=>c.id===b.dataset.id));
+  else if(a==='payment') paymentSheet();
+  else if(a==='payPlan') payPlan();
+  else if(a==='settings') settingsSheet();
+  else if(a==='example') loadExample();
+  else if(a==='clearEx') clearExample();
+  else if(a==='backup') exportBackup();
+  else if(a==='edit'){
+    const {item,rec}=findItem(b.dataset.id);
+    if(rec) (rec.type==='income'?incomeSheet:expenseSheet)(rec,true);
+    else if(item) (item.type==='income'?incomeSheet:item.type==='payment'?paymentSheet:expenseSheet)(item,false);
+  }
+});
+$('#prev').addEventListener('click',()=>{S.cur=addM(S.cur,-1);render();});
+$('#next').addEventListener('click',()=>{S.cur=addM(S.cur,1);render();});
+$('#settingsBtn').addEventListener('click',settingsSheet);
+$('#addExp').addEventListener('click',()=>expenseSheet());
+$('#addInc').addEventListener('click',()=>incomeSheet());
+
+function applyDocs(docs){
+  if(docs.settings) S.settings=Object.assign(clone(DEFAULT_SETTINGS),docs.settings,{split:Object.assign({},DEFAULT_SETTINGS.split,docs.settings.split),credit:Object.assign({},DEFAULT_SETTINGS.credit,docs.settings.credit)});
+  for(const id in docs) if(id.startsWith('m-')){const m=docs[id];S.months[id.slice(2)]={items:m.items||[],skipped:m.skipped||[]};}
+}
+Store.init().then(docs=>{ applyDocs(docs); render(); });
+if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+})();
+</script>
+</body>
+</html>
